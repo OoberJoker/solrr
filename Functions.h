@@ -84,7 +84,6 @@ float slaveDeviceTimeCountDelay=80.0;
 double adjustementFactor = 0.16;
 
 
-
 //MOTOR 1 DAILY
 #define RELAY_IN_ONE 4
 #define RELAY_IN_TWO 5
@@ -94,6 +93,29 @@ double adjustementFactor = 0.16;
 #define RELAY_IN_FOUR 8
 
 
+void clearLCDScreen(){
+	lcd.setCursor(0,0);
+	lcd.print("                ");		
+	lcd.setCursor(0,1);
+	lcd.print("                ");	
+	lcd.setCursor(0,0);
+}
+long delayTimeFunc(long delayTime){  //NEW
+//int tenPercentOfDelayTime=delayTime*0.10;
+int resetCounter=0;
+
+
+  for(long i=0;i<delayTime;i++){     
+      delay(1);   
+	  if(resetCounter==1000){
+		  resetCounter=0;
+		  wdt_reset();
+	  }
+	  resetCounter++;
+      
+  }
+}
+
 
 void lcdInit(){
 //	const int rs = 6, en = 9, d4 = 10, d5 = 11, d6 = 12, d7 =13;//rs = 11, en = 10, d4 = 9, d5 = 6, d6 = 3, d7 =2;
@@ -101,27 +123,25 @@ void lcdInit(){
 	//lcd.init(1, 6, 255, 9, 10, 11, 12, 13, 0, 0, 0, 0); 
 	//actual function....init(1, rs, 255, enable, d0, d1, d2, d3, 0, 0, 0, 0);
 	lcd.init(1,rs,255,en, d4, d5, d6, d7, 0, 0, 0, 0);
+	lcd.begin(16,2);
 	lcd.setCursor(0,0);
 }
 
 void sendEndChar(){
-	lcd.clear();
-	lcd.setCursor(0,0);
-    lcd.print("       ");	
 	
-	lcd.setCursor(0,0);
+	clearLCDScreen();	
 	lcd.print("Transmitting...");
 	Serial.println("");
 	Serial.println("%");
-	delay(500);
+	delayTimeFunc(500);
 	
 }
 
 void Stop(int motorNumber)
 {
  // Serial.println("Stop");
-  lcd.clear();
-  lcd.setCursor(0,0);    
+  
+  clearLCDScreen();    
   lcd.print("Stop"); 
   
   if(motorNumber==1){ 
@@ -132,7 +152,7 @@ void Stop(int motorNumber)
      digitalWrite(RELAY_IN_THREE,LOW);
 	 digitalWrite(RELAY_IN_FOUR,LOW);
   }
-  delay(2000);
+  delayTimeFunc(2000);
 }
 
 
@@ -141,7 +161,7 @@ void Forward(int motorNumber)
 {
   //Serial.println("Forward");
   
-  lcd.setCursor(0,0);    
+  clearLCDScreen();    
   lcd.print("Forwarding");
 
   if(motorNumber==1){     
@@ -158,7 +178,7 @@ void Reverse(int motorNumber)
 {
  // Serial.println("Reverse");
   
-  lcd.setCursor(0,0);    
+  clearLCDScreen();
   lcd.print("Reversing");
   if(motorNumber==1){     
      digitalWrite(RELAY_IN_ONE,LOW);
@@ -202,20 +222,20 @@ void motionMethodName(int methodNumber,int actuatorName,bool flip){//methodName 
           int highestLuxIndex=0;
       for(int index=0;index<panelIndexCount;index++){
         lux[index] = lightMeter.readLightLevel();
-			delay(100);
+			delayTimeFunc(100);
 			if(index>0){//because we want to get the 4 lux values but index the panels only 3 times...
 				motionMethodName(methodNumber,actuatorName,false);
-				delay(indexDelay);
+				delayTimeFunc(indexDelay);
 				Stop(actuatorName);
-				delay(500);
+				delayTimeFunc(500);
 			}
       }
                                              
           for(int t=0;t<panelIndexCount;t++){//because we have 4 lux values but indexed only 3 times...
 			  motionMethodName(methodNumber,actuatorName,true);
-			  delay(indexDelay);
+			  delayTimeFunc(indexDelay);
 			  Stop(actuatorName);
-			  delay(500);       
+			  delayTimeFunc(500);       
           }
 
           highestLux = lux[0];
@@ -232,7 +252,7 @@ void motionMethodName(int methodNumber,int actuatorName,bool flip){//methodName 
             Serial.println(highestLuxIndex);
           for(int r=0;r<=highestLuxIndex;r++){
               motionMethodName(methodNumber,actuatorName,false);
-              delay(indexDelay);           
+              delayTimeFunc(indexDelay);           
               Stop(actuatorName);
           }
      
@@ -259,11 +279,13 @@ void getRequestToDevice(int &actuatorRuntime){
 	counter=0;	
 	  
 	sscanf(temp, "%d", &data);	
-	actuatorRuntime = data;
-	Serial.println("actuatorRuntime: ");
-	Serial.println(actuatorRuntime);
+	//if(data>0){//TEST PLEASE REMOVE
+		actuatorRuntime = data;
+	//}
+	/*Serial.println("actuatorRuntime: ");
+	Serial.println(actuatorRuntime);*/
 	
-	delay(100);	
+	delayTimeFunc(100);	
 }
 
 
@@ -284,45 +306,47 @@ int motorNumber=0;
 	pinMode(forwards, OUTPUT);//set relay as an output
 	pinMode(backwards, OUTPUT);
 	
-	Stop(motorNumber);
+	//Stop(motorNumber);
 	
 	Reverse(motorNumber);//go full BACK so we can then measure the forward runtime...
-	delay(resetTime);	
+	delayTimeFunc(resetTime);	
+	Stop(motorNumber);
 	
 	getRequestToDevice(resetValue);
 	
-	lcd.clear();
-	delay(2100);
-    lcd.setCursor(0,0);    
+	
+    clearLCDScreen();    
     lcd.print("Reset done");
-    delay(1000);
+    delayTimeFunc(1000);
 	
 	
-	lcd.clear();
-	delay(2100);
-    lcd.setCursor(0,0);    
+	
+    clearLCDScreen();    
     lcd.print("Forwarding");
 	Forward(motorNumber);//start forward motion      
-	delay(resetTime);
-	getRequestToDevice(forwardRuntime);	
+	delayTimeFunc(resetTime);
 	Stop(motorNumber);	
 	
+	getRequestToDevice(forwardRuntime);	
 	
-	delay(2000);
+	
+	
+	delayTimeFunc(2000);
 	
 		
 	
-	lcd.clear();
-	delay(2100);
-    lcd.setCursor(0,0);    
+	
+    clearLCDScreen();    
     lcd.print("Reversing");
 	Reverse(motorNumber);//Activate the relay the other direction, they must be different to move the motor	 
-	delay(resetTime);   
-	getRequestToDevice(backwardRuntime);	
+	delayTimeFunc(resetTime);   
 	Stop(motorNumber);
 	
+	getRequestToDevice(backwardRuntime);	
 	
-	delay(2000);
+	
+	
+	delayTimeFunc(2000);
 }
 
 
@@ -364,14 +388,11 @@ void getSeasonalActuatorRuntime(int &forwardRuntime,int &backwardRuntime){
 int getDayOfYear(int month,int dayOfMonth,int year){
 
     int daysinaMonth[12];
-	daysinaMonth[0] = 31;	
-	
-	daysinaMonth[1] = 28;
-	
+	daysinaMonth[0] = 31;		
+	daysinaMonth[1] = 28;	
 	daysinaMonth[2] = 31;	
 	daysinaMonth[3] = 30;	
-	daysinaMonth[4] = 31;
-	
+	daysinaMonth[4] = 31;	
 	daysinaMonth[5] = 30;
 	daysinaMonth[6] = 31;
 	daysinaMonth[7] = 31;	
@@ -431,7 +452,7 @@ void seasonalAxisDailyMovement(int hour){
 			if(hour>=10 && hour<16){
 				int adjustementDelay  = 1000*(actuatorTwoForwardRuntimeCalculated*adjustementFactor);
 				Forward(2);
-				delay(adjustementDelay);//so it actuates 16%
+				delayTimeFunc(adjustementDelay);//so it actuates 16%
 				Stop(2);	
 				
 				
@@ -444,7 +465,7 @@ void seasonalAxisDailyMovement(int hour){
 			else{
 				int adjustementDelay = 1000*(actuatorTwoReverseRuntimeCalculated*adjustementFactor);
 				Reverse(2);
-				delay(adjustementDelay);
+				delayTimeFunc(adjustementDelay);
 				Stop(2);
 				
 	
@@ -459,7 +480,7 @@ void seasonalAxisDailyMovement(int hour){
 		    if(hour>=10 && hour<16){
 				int adjustementDelay = 1000*(actuatorTwoReverseRuntimeCalculated*adjustementFactor);
 				Reverse(2);
-				delay(adjustementDelay);
+				delayTimeFunc(adjustementDelay);
 				Stop(2);				
 				
 	
@@ -469,7 +490,7 @@ void seasonalAxisDailyMovement(int hour){
 			else{
 				int adjustementDelay = 1000*(actuatorTwoForwardRuntimeCalculated*adjustementFactor);
 				Forward(2);
-				delay(adjustementDelay);
+				delayTimeFunc(adjustementDelay);
 				Stop(2);
 				
 	
@@ -479,7 +500,7 @@ void seasonalAxisDailyMovement(int hour){
 		
 	}
 	lcdInit();
-	delay(500);//Reverse Dominant - Seasonal Axis Daily Movement Reverse. Actuation Time:638
+	delayTimeFunc(500);//Reverse Dominant - Seasonal Axis Daily Movement Reverse. Actuation Time:638
 
 }
 
@@ -514,20 +535,20 @@ void doSeasonalMovement(int year,int month,int day,int hour,char actuatorOrienta
     if(setseasonalAxis){
 		  int decemberOffSet=10;	
     
-	   if(reverse){
-          Forward(2);
-          delay(resetTime);//give it a good 30 secs to completely go down to January's position.
-          Stop(2);		  
-		}
-		else if(forward){
-		  Reverse(2);
-          delay(resetTime);//give it a good 30 secs to completely go down to January's position.
-          Stop(2);		  
-		}
-								
-          //3 because there can be 30 or 31 days in the month. just taking a generic consideration
+	   						
+          
           
           if(month<=6 && dayNumberofYear<=172){//June 21st...  months 1-6     
+				if(reverse){
+				  Forward(2);
+				  delayTimeFunc(resetTime);
+				  Stop(2);		  
+				}
+				else if(forward){
+				  Reverse(2);
+				  delayTimeFunc(resetTime);
+				  Stop(2);		  
+				}//RESET...		
 
 			          
 	/*we need this offset because the reverse actuation of the system begins from december 21st. So if the system is ever calibrated after december 21st,
@@ -535,67 +556,98 @@ void doSeasonalMovement(int year,int month,int day,int hour,char actuatorOrienta
                         if(reverse){							
 								totalActuationTime = ((dayNumberofYear+decemberOffSet)*actuatorTwoDelayTimePerDayReverse);//+9 for counting december days...21st to 31st							
 								Reverse(2);
-								delay(totalActuationTime);
-								Stop(2);
-								
-	
-								
+								delayTimeFunc(totalActuationTime);
+								Stop(2);							
 						}
 						else if(forward){								
 								totalActuationTime = ((dayNumberofYear+decemberOffSet)*actuatorTwoDelayTimePerDayForward);								
 								Forward(2);
-								delay(totalActuationTime);
+								delayTimeFunc(totalActuationTime);
 								Stop(2);								
 							
 						}
          }//24912
          else{         //dayMultiplier order is reversed from above because we are counting backwards from december to whatever month it currently is...
 		 //months 7-12				
+						
 					if(month==12){								
 							if(dayNumberofYear>355){
+								if(reverse){
+								  Forward(2);
+								  delayTimeFunc(resetTime);
+								  Stop(2);		  
+								}
+								else if(forward){
+								  Reverse(2);
+								  delayTimeFunc(resetTime);
+								  Stop(2);		  
+								}//RESET...
+								
 								dayNumberofYear = decemberOffSet-(365-dayNumberofYear);	//so could be 1,2,3...to 9...	
 								if(reverse){									
 										totalActuationTime = (dayNumberofYear*actuatorTwoDelayTimePerDayReverse);
 										Reverse(2);
-										delay(totalActuationTime);
+										delayTimeFunc(totalActuationTime);
 										Stop(2);	
 								}
 							
 								else if(forward){																	
 										totalActuationTime = (dayNumberofYear*actuatorTwoDelayTimePerDayForward);								
 										Forward(2);
-										delay(totalActuationTime);
+										delayTimeFunc(totalActuationTime);
 										Stop(2);																			
 								}
 								
 							}
 							else{
+									if(reverse){
+									  Reverse(2);
+									  delayTimeFunc(resetTime);
+									  Stop(2);		  
+									}
+									else if(forward){
+									  Forward(2);
+									  delayTimeFunc(resetTime);
+									  Stop(2);		  
+									}//RESET...
+									
 								if(reverse){
 											totalActuationTime = (dayNumberofYear*actuatorTwoDelayTimePerDayForward);								
 											Forward(2);
-											delay(totalActuationTime);
+											delayTimeFunc(totalActuationTime);
 											Stop(2);	
 								}
 								else if(forward){									
 											totalActuationTime = (dayNumberofYear*actuatorTwoDelayTimePerDayReverse);
 											Reverse(2);
-											delay(totalActuationTime);
+											delayTimeFunc(totalActuationTime);
 											Stop(2);											
 								}
 							}						
 						
 					}	
 					else{	//months 6/22,7,8,9,10,11...				
+							if(reverse){
+							  Reverse(2);
+							  delayTimeFunc(resetTime);
+							  Stop(2);		  
+							}
+							else if(forward){
+							  Forward(2);
+							  delayTimeFunc(resetTime);
+							  Stop(2);		  
+							}//RESET...
+							
                         if(reverse){							
 								totalActuationTime = (dayNumberofYear*actuatorTwoDelayTimePerDayForward);								
 								Forward(2);
-								delay(totalActuationTime);
+								delayTimeFunc(totalActuationTime);
 								Stop(2);	
 						}
 						else if(forward){							
 								totalActuationTime = (dayNumberofYear*actuatorTwoDelayTimePerDayReverse);
 								Reverse(2);
-								delay(totalActuationTime);
+								delayTimeFunc(totalActuationTime);
 								Stop(2);								
 						}
 					}
@@ -613,20 +665,22 @@ void doSeasonalMovement(int year,int month,int day,int hour,char actuatorOrienta
 		bool actuated = EEPROM.read(9);
         
 	
-		actuatorTwoDelayTimePerDayReverse = 1000*((actuatorTwoReverseRuntimeCalculated*0.84)/182);
-		actuatorTwoDelayTimePerDayForward = 1000*((actuatorTwoForwardRuntimeCalculated*0.84)/182);
+		actuatorTwoDelayTimePerDayReverse = 1000*((actuatorTwoReverseRuntimeCalculated*0.88)/182);
+		actuatorTwoDelayTimePerDayForward = 1000*((actuatorTwoForwardRuntimeCalculated*0.88)/182);
+	
+	//was 0.84 before. Made it 0.88 so its able to compensate for weight and in case the 16% movement forwards and backwards messes up, meaning over actuates.
 	
 		if(!actuated){			
             if(month<=6 && dayNumberofYear<=172){        //june 21st...              
              
 					if(reverse){		
 						  Reverse(2);
-						  delay(actuatorTwoDelayTimePerDayReverse/*+adjustementDelay*/);//adjustementFactor
+						  delayTimeFunc(actuatorTwoDelayTimePerDayReverse/*+adjustementDelay*/);//adjustementFactor
 						  Stop(2); 													
 					}
 					else if(forward){				
 						  Forward(2);
-						  delay(actuatorTwoDelayTimePerDayForward/*+adjustementDelay*/);
+						  delayTimeFunc(actuatorTwoDelayTimePerDayForward/*+adjustementDelay*/);
 						  Stop(2);						  
 					}        
                   EEPROM.write(9,1);//indicating that we have actuated for this day.                     
@@ -637,14 +691,14 @@ void doSeasonalMovement(int year,int month,int day,int hour,char actuatorOrienta
 								if(reverse){				
 										totalActuationTime = actuatorTwoDelayTimePerDayReverse/*+adjustementDelay*/;
 										Reverse(2);
-										delay(totalActuationTime);
+										delayTimeFunc(totalActuationTime);
 										Stop(2);
 								}
 							
 								else if(forward){																
 										totalActuationTime = actuatorTwoDelayTimePerDayForward/*+adjustementDelay*/;								
 										Forward(2);
-										delay(totalActuationTime);
+										delayTimeFunc(totalActuationTime);
 										Stop(2);										
 								}
 								
@@ -654,14 +708,14 @@ void doSeasonalMovement(int year,int month,int day,int hour,char actuatorOrienta
 									
 											totalActuationTime = actuatorTwoDelayTimePerDayForward/*+adjustementDelay*/ ;								
 											Forward(2);
-											delay(totalActuationTime);
+											delayTimeFunc(totalActuationTime);
 											Stop(2);									
 								}
 								else if(forward){									
 										
 											totalActuationTime = actuatorTwoDelayTimePerDayReverse/*+adjustementDelay*/;
 											Reverse(2);
-											delay(totalActuationTime);
+											delayTimeFunc(totalActuationTime);
 											Stop(2);												
 								}
 							}							
@@ -674,13 +728,13 @@ void doSeasonalMovement(int year,int month,int day,int hour,char actuatorOrienta
 						 if(reverse){
 							 // int adjustementDelay = 1000*(actuatorTwoForwardRuntime*adjustementFactor);
 							  Forward(2);
-							  delay(actuatorTwoDelayTimePerDayForward/*+adjustementDelay*/);
+							  delayTimeFunc(actuatorTwoDelayTimePerDayForward/*+adjustementDelay*/);
 							  Stop(2);
 						 }
 						 else if(forward){
 							 // int adjustementDelay = 1000*(actuatorTwoReverseRuntime*adjustementFactor);
 							  Reverse(2);
-							  delay(actuatorTwoDelayTimePerDayReverse/*+adjustementDelay*/);
+							  delayTimeFunc(actuatorTwoDelayTimePerDayReverse/*+adjustementDelay*/);
 							  Stop(2); 	
 							
 						 }    
@@ -717,11 +771,11 @@ void setDelayTimingsArray(int &actuatorOneForwardRuntime,int &actuatorOneReverse
     delayTimesForwardActuatorOne[2] = (1000*((actuatorOneForwardRuntimeCalculated*2.54)/38))/2; //8-9   
     delayTimesForwardActuatorOne[3] = delayTimesForwardActuatorOne[2]; //8-9
     
-    delayTimesForwardActuatorOne[4] = (1000*((actuatorOneForwardRuntimeCalculated*2.4)/38))/2; //9-10    
+    delayTimesForwardActuatorOne[4] = (1000*((actuatorOneForwardRuntimeCalculated*2.6)/38))/2; //9-10    //was 2.4
     delayTimesForwardActuatorOne[5] =   delayTimesForwardActuatorOne[4]; //9-10
 
     
-    delayTimesForwardActuatorOne[6] = (1000*((actuatorOneForwardRuntimeCalculated*3.5)/38))/2; //10-11
+    delayTimesForwardActuatorOne[6] = (1000*((actuatorOneForwardRuntimeCalculated*3.7)/38))/2; //10-11 //was 3.5
     delayTimesForwardActuatorOne[7] =  delayTimesForwardActuatorOne[6]; //10-11
     
     delayTimesForwardActuatorOne[8] = (1000*((actuatorOneForwardRuntimeCalculated*4.5)/38))/2; //11-12    
@@ -795,17 +849,17 @@ void setdailyActuatorTimings(int &actuatorOneForwardRuntime,int &actuatorOneReve
       EEPROM.write(1, 'O');  
       EEPROM.write(2, actuatorOneForwardRuntime);    
       EEPROM.write(3, actuatorOneReverseRuntime);
-      delay(10);
+      delayTimeFunc(10);
       if(dailyActuatorOrientation=='R'){
         Forward(1);    
-        delay(resetTime);
+        delayTimeFunc(resetTime);
         Stop(1);
 		
 	
       }
       else{
         Reverse(1);
-        delay(resetTime);
+        delayTimeFunc(resetTime);
         Stop(1);
 		
 	
@@ -845,12 +899,10 @@ void setseasonalActuatorTimings(int &actuatorTwoForwardRuntime,int &actuatorTwoR
 		  /*Serial.print("Month: ");
 		  Serial.println(month);		  
 		  Serial.println("resetting seasonal actuator");*/
-		  lcd.clear();
-		  delay(2100);
-		  lcd.setCursor(0,0);    
+		  clearLCDScreen();    
 		  lcd.print("resetting ");
 		  Forward(2);
-		  delay(resetTime);//resetting		  
+		  delayTimeFunc(resetTime);//resetting		  
 		  Stop(2);
 		  
 	  }
@@ -858,12 +910,10 @@ void setseasonalActuatorTimings(int &actuatorTwoForwardRuntime,int &actuatorTwoR
 		  /*Serial.print("Month: ");
 		  Serial.print(month);
 		  Serial.println("resetting seasonal actuator");*/
-		  lcd.clear();
-		  delay(2100);
-		  lcd.setCursor(0,0);    
+		  clearLCDScreen();    
 		  lcd.print("resetting ");
 		  Reverse(2);
-		  delay(resetTime);//resetting
+		  delayTimeFunc(resetTime);//resetting
 		  Stop(2);
 		  
 	  }
@@ -873,24 +923,20 @@ void setseasonalActuatorTimings(int &actuatorTwoForwardRuntime,int &actuatorTwoR
 		  /*Serial.print("Month: ");
 		  Serial.println(month);		  
 		  Serial.println("resetting seasonal actuator");*/
-		  lcd.clear();
-		  delay(2100);
-		  lcd.setCursor(0,0);    
+		  clearLCDScreen();   
 		  lcd.print("resetting ");
 		  Reverse(2);
-		  delay(resetTime);//resetting		  
+		  delayTimeFunc(resetTime);//resetting		  
 		  Stop(2);
 	  }
 	  else{
 		  /*Serial.print("Month: ");
 		  Serial.print(month);
 		  Serial.println("resetting seasonal actuator");*/
-		  lcd.clear();
-		  delay(2100);
-		  lcd.setCursor(0,0);    
+		  clearLCDScreen();    
 		  lcd.print("resetting ");
 		  Forward(2);
-		  delay(resetTime);//resetting
+		  delayTimeFunc(resetTime);//resetting
 		  Stop(2);
 	  }
 		
@@ -922,10 +968,11 @@ void doDailyMovement(int currentBlockValue,char actuatorOrientation,int hour,int
 	
 	int totalDelay=0;	
 	int actualPreviousBlockValue=EEPROM.read(8);	//9
-	delay(5);
+	delayTimeFunc(5);
 	int expectedPreviousBlockValue=currentBlockValue-1;//-1
 	bool forceResetFlag=false;
-	
+	int goBackToBlock = 9;/*by negating this value from a current block, it will set it to some previos block, depending on the value of the current block
+						we need this so that we can choose for example blocks of 12,12:30, and 1, which have the max movement, because they have the highest time...*/
 	
 
 	if(setDailyAxis){
@@ -934,14 +981,14 @@ void doDailyMovement(int currentBlockValue,char actuatorOrientation,int hour,int
 						totalDelay=0;					
 						if(actuatorOrientation=='R'){	
 							Forward(1);
-							delay(resetTime); 
+							delayTimeFunc(resetTime); 
 							Stop(1);//reset
 								for(int i=0;i<=currentBlockValue;i++){
 									totalDelay+= delayTimesReverseActuatorOne[i];
 								}
 							
 							Reverse(1);						
-							delay(totalDelay);
+							delayTimeFunc(totalDelay);
 							Stop(1);								
 							totalDealyTemp = totalDelay;
 							currentBlockTemp = currentBlockValue;
@@ -953,14 +1000,14 @@ void doDailyMovement(int currentBlockValue,char actuatorOrientation,int hour,int
 						}
 						else{
 							Reverse(1);
-							delay(resetTime); 
+							delayTimeFunc(resetTime); 
 							Stop(1);//reset
 								for(int i=0;i<=currentBlockValue;i++){
 									totalDelay+= delayTimesReverseActuatorOne[i];
 								}
 							
 							Forward(1);						
-							delay(totalDelay);
+							delayTimeFunc(totalDelay);
 							Stop(1);								
 							totalDealyTemp = totalDelay;
 							currentBlockTemp = currentBlockValue;
@@ -976,13 +1023,13 @@ void doDailyMovement(int currentBlockValue,char actuatorOrientation,int hour,int
 				if(currentBlockValue==0){				
 					if(actuatorOrientation=='R'){					
 							Forward(1);
-							delay(resetTime);
+							delayTimeFunc(resetTime);
 							Stop(1);//reset
 							
 							
-							delay(2000);
+							delayTimeFunc(2000);
 							Reverse(1);
-							delay(delayTimesReverseActuatorOne[0]);
+							delayTimeFunc(delayTimesReverseActuatorOne[0]);
 							Stop(1);
 							EEPROM.write(16,0);//reset to 0							
 							expectedPreviousBlockValue= actualPreviousBlockValue;							
@@ -990,13 +1037,13 @@ void doDailyMovement(int currentBlockValue,char actuatorOrientation,int hour,int
 					else{
 						
 							Reverse(1);
-							delay(resetTime);
+							delayTimeFunc(resetTime);
 							Stop(1);//reset
 							
 							
-							delay(2000);
+							delayTimeFunc(2000);
 							Forward(1);
-							delay(delayTimesReverseActuatorOne[0]);
+							delayTimeFunc(delayTimesReverseActuatorOne[0]);
 							Stop(1);
 							EEPROM.write(16,0);//reset to 0						
 							expectedPreviousBlockValue= actualPreviousBlockValue;						
@@ -1020,7 +1067,7 @@ void doDailyMovement(int currentBlockValue,char actuatorOrientation,int hour,int
 								totalDelay+= delayTimesReverseActuatorOne[i];
 							}
 							Reverse(1);
-							delay(totalDelay);
+							delayTimeFunc(totalDelay);
 							Stop(1);
 							EEPROM.write(16,1);
 						}						
@@ -1038,7 +1085,7 @@ void doDailyMovement(int currentBlockValue,char actuatorOrientation,int hour,int
 								totalDelay+= delayTimesReverseActuatorOne[i];
 							}
 							Forward(1);
-							delay(totalDelay);
+							delayTimeFunc(totalDelay);
 							Stop(1);
 							EEPROM.write(16,1);
 						}			
@@ -1048,12 +1095,12 @@ void doDailyMovement(int currentBlockValue,char actuatorOrientation,int hour,int
 			    if(currentBlockValue==22){
 						if(actuatorOrientation=='R'){		
 							Forward(1);
-							delay(resetTime);
+							delayTimeFunc(resetTime);
 							Stop(1);					
 						}
 						else{
 							Reverse(1);
-							delay(resetTime);
+							delayTimeFunc(resetTime);
 							Stop(1);						
 						}
 				}
@@ -1065,14 +1112,14 @@ void doDailyMovement(int currentBlockValue,char actuatorOrientation,int hour,int
 						if(actuatorOrientation=='R'){		
 							
 							Forward(1);
-							delay(resetTime);
+							delayTimeFunc(resetTime);
 							Stop(1);//reset
 							for(int i=0;i<=currentBlockValue;i++){
 								totalDelay+= delayTimesReverseActuatorOne[i];
 							}				
 												
 							Reverse(1);
-							delay(totalDelay);
+							delayTimeFunc(totalDelay);
 							Stop(1);			
 							
 							totalDealyTemp = totalDelay;
@@ -1080,14 +1127,14 @@ void doDailyMovement(int currentBlockValue,char actuatorOrientation,int hour,int
 						}
 						else{							
 							Reverse(1);
-							delay(resetTime);
+							delayTimeFunc(resetTime);
 							Stop(1);//reset
 							for(int i=0;i<=currentBlockValue;i++){
 								totalDelay+= delayTimesReverseActuatorOne[i];
 							}				
 												
 							Forward(1);
-							delay(totalDelay);
+							delayTimeFunc(totalDelay);
 							Stop(1);			
 							
 							totalDealyTemp = totalDelay;
@@ -1103,38 +1150,38 @@ void doDailyMovement(int currentBlockValue,char actuatorOrientation,int hour,int
 							if(actuatorOrientation=='R'){
 									if(forceResetFlag){
 										
-										for(int i=19;i<=currentBlockValue;i++){//19 is 4:30 PM...so start from there
-											totalDelay += delayTimesForwardActuatorOne[i];
+										for(int i=19;i<=currentBlockValue;i++){//19 is 4:30 PM...so start from there. 
+											totalDelay += delayTimesForwardActuatorOne[i-goBackToBlock];//goBackToBlock will actuate it for timings of 12,12:30 and 1 PM..
 										}
 											Forward(1);
-											delay(totalDelay);
+											delayTimeFunc(totalDelay);
 											Stop(1);
 									
 									
 									}
 									else{
-										totalDelay = delayTimesForwardActuatorOne[currentBlockValue];							
+										totalDelay = delayTimesForwardActuatorOne[currentBlockValue-goBackToBlock];//goBackToBlock will actuate it for timings of 12,12:30 and 1 PM..							
 										Forward(1);
-										delay(totalDelay);
+										delayTimeFunc(totalDelay);
 										Stop(1);
 									}								
 							}
 							else{
 									if(forceResetFlag){
 										
-										for(int i=19;i<=currentBlockValue;i++){//19 is 4:30 PM...so start from there
-											totalDelay += delayTimesForwardActuatorOne[i];
+										for(int i=19;i<=currentBlockValue;i++){//19 is 4:30 PM...so start from there. goBackToBlock will actuate it for timings of 12,12:30 and 1 PM..
+											totalDelay += delayTimesForwardActuatorOne[i-goBackToBlock];//goBackToBlock will actuate it for timings of 12,12:30 and 1 PM..
 										}
 											Reverse(1);
-											delay(totalDelay);
+											delayTimeFunc(totalDelay);
 											Stop(1);
 									
 									
 									}
 									else{
-										totalDelay = delayTimesForwardActuatorOne[currentBlockValue];							
+										totalDelay = delayTimesForwardActuatorOne[currentBlockValue-goBackToBlock];//goBackToBlock will actuate it for timings of 12,12:30 and 1 PM..
 										Reverse(1);
-										delay(totalDelay);
+										delayTimeFunc(totalDelay);
 										Stop(1);
 									}							
 								
@@ -1151,7 +1198,7 @@ void doDailyMovement(int currentBlockValue,char actuatorOrientation,int hour,int
 													totalDelay=0;
 													totalDelay = delayTimesReverseActuatorOne[currentBlockValue];
 													Reverse(1);
-													delay(totalDelay);
+													delayTimeFunc(totalDelay);
 													Stop(1);									
 												}
 											}
@@ -1160,7 +1207,7 @@ void doDailyMovement(int currentBlockValue,char actuatorOrientation,int hour,int
 														totalDelay=0;
 														totalDelay = delayTimesReverseActuatorOne[currentBlockValue];
 														Reverse(1);
-														delay(totalDelay);
+														delayTimeFunc(totalDelay);
 														Stop(1);													
 												}
 												
@@ -1173,7 +1220,7 @@ void doDailyMovement(int currentBlockValue,char actuatorOrientation,int hour,int
 													totalDelay=0;
 													totalDelay = delayTimesReverseActuatorOne[currentBlockValue];
 													Forward(1);
-													delay(totalDelay);
+													delayTimeFunc(totalDelay);
 													Stop(1);													
 												}
 											}
@@ -1182,7 +1229,7 @@ void doDailyMovement(int currentBlockValue,char actuatorOrientation,int hour,int
 														totalDelay=0;
 														totalDelay = delayTimesReverseActuatorOne[currentBlockValue];
 														Forward(1);
-														delay(totalDelay);
+														delayTimeFunc(totalDelay);
 														Stop(1);													
 												}
 												
@@ -1201,20 +1248,18 @@ void doDailyMovement(int currentBlockValue,char actuatorOrientation,int hour,int
 				}
 				setDailyAxis=false;
 				EEPROM.write(8, currentBlockValue);
-				delay(5);									
+				delayTimeFunc(5);									
 				configInProgress=false;
 				sendEndChar();
 	}
 	lcdInit();
-	delay(500);
+	delayTimeFunc(500);
 
 }
 
 void stopatOptimumAngle(){
 		int delayTime=0;
-	   lcd.clear();
-	   delay(2100);
-       lcd.setCursor(0,0);
+	   clearLCDScreen();
        lcd.print("Optimum Position");
 	   float additionalDelayReverse = ((slaveDeviceTimeCountDelay*actuatorOneReverseRuntime)/1000);
 	   float additionalDelayForward = ((slaveDeviceTimeCountDelay*actuatorOneForwardRuntime)/1000);
@@ -1222,36 +1267,36 @@ void stopatOptimumAngle(){
 	  
 		if(dailyActuatorOrientation=='R'){
 			Forward(1);
-			delay(resetTime);
+			delayTimeFunc(resetTime);
 			Stop(1);
-			delay(2000);			
+			delayTimeFunc(2000);			
 		
 		    delayTime = (1000*((actuatorOneReverseRuntime+additionalDelayReverse)/2));
 		
 			Reverse(1);
-			delay(delayTime);
+			delayTimeFunc(delayTime);
 			Stop(1);
 			delayTime=0;
-			delay(2000);
+			delayTimeFunc(2000);
 		}
 		else if(dailyActuatorOrientation=='F'){
 			Reverse(1);
-			delay(resetTime);
+			delayTimeFunc(resetTime);
 			Stop(1);
-			delay(2000);						
+			delayTimeFunc(2000);						
 			delayTime = (1000*((actuatorOneReverseRuntime+additionalDelayReverse)/2));			
 			Forward(1);
-			delay(delayTime);
+			delayTimeFunc(delayTime);
 			Stop(1);
 			delayTime=0;
-			delay(2000);
+			delayTimeFunc(2000);
 			
 		}
 	optimumAngleSet=true;	
 	configInProgress=false;
 	sendEndChar();
 	lcdInit();
-	delay(500);
+	delayTimeFunc(500);
 	
 }
 
