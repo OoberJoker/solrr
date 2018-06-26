@@ -1,4 +1,5 @@
 //#include <LiquidCrystal_I2C.h>
+#include<avr/wdt.h>//NEW
 #include <LiquidCrystal.h>
 //LiquidCrystal_I2C  lcd(0x3F, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE); // 0x3F(sometimes 0x27) is the I2C bus address for an unmodified backpack pcf8574
 const int rs = 6, en = 9, d4 = 10, d5 = 11, d6 = 12, d7 =13;//rs = 11, en = 10, d4 = 9, d5 = 6, d6 = 3, d7 =2;
@@ -24,9 +25,9 @@ int secondLoopAround=0;
 //DateTime now = rtc.now(); //get the current date-time
 void setup()                         
 {  
-
+  wdt_disable();
   Serial.begin(9600);              // Initiates the serial to do the monitoring 
-  delay(1000);//protection for rtc...
+  delayTimeFunc(1000);//protection for rtc...
   Wire.begin();
   rtc.begin();
   lcd.begin (16,2); // for 16 x 2 LCD module
@@ -124,7 +125,7 @@ if(eepromArray[0]=='A' && eepromArray[1] == 'O' && eepromArray[4] == 'A' && eepr
  // Serial.println("getting getActuatorOneSpeedFromEEPROM");
 
  
-  actuatorOneForwardRuntime  = eepromArray[2];//lets add a second to what evert is returned to compensate for the delay times during testing and in between communication
+  actuatorOneForwardRuntime  = eepromArray[2];
   actuatorOneReverseRuntime  = eepromArray[3];
   actuatorTwoForwardRuntime  = eepromArray[6];   
   actuatorTwoReverseRuntime  = eepromArray[7];
@@ -154,11 +155,11 @@ if(eepromArray[0]=='A' && eepromArray[1] == 'O' && eepromArray[4] == 'A' && eepr
 
 }
 
-lcd.clear(); 
-delay(100);
+clearLCDScreen(); 
+delayTimeFunc(200);
   
 // begin returns a boolean that can be used to detect setup problems.
-
+wdt_enable(WDTO_8S);//NEW
 
 }
 
@@ -171,7 +172,7 @@ void loop()
     
   
     DateTime now = rtc.now();
-    delay(200);
+    delayTimeFunc(200);
     
     uint32_t ts = now.unixtime();
   
@@ -186,10 +187,7 @@ void loop()
     day = now.day();//7,14,21,28
     month = now.month();
     year = now.year();
-    second = now.second();    
-    
-   
-    
+    second = now.second();       
     
     if(year<2018 || year > 2100){
       rtcChecker++;
@@ -197,8 +195,8 @@ void loop()
   
     if(rtcChecker>20000){
      // Serial.println("RTC out. Re-setting system to optimum angle and going into sleep mode");
-      lcd.clear();
-      lcd.setCursor(0,0);    
+      //lcd.clear();
+      clearLCDScreen();    
       lcd.print("RTC out-Sleeping"); 
       rtcChecker=0;
       stopatOptimumAngle();
@@ -239,7 +237,7 @@ void loop()
     lcd.print(getDayOfYear(month,day,year));
     //lcd.clear(); 
 
-    delay(500);
+    delayTimeFunc(500);
 
     
     
@@ -259,7 +257,7 @@ void loop()
       int minuteT=0;
       int secondsT=0;*/
       
-  delay(100);  
+  delayTimeFunc(100);  
   if(configInProgress){
     c=' ';  
   }
@@ -319,23 +317,19 @@ void loop()
       Serial.println("-------");
       
       
-      //delay(500);
+      //delayTimeFunc(500);
       
     }    
     if(c=='X'){//this is for calibration     
     //  Serial.println("Calibrating Daily Actuator");
-       lcd.clear();
-       delay(2100);
-       lcd.setCursor(0,0);
+       clearLCDScreen();       
        lcd.print("Calibrating..."); 
        setdailyAxisBT = 'T';//T for true of course
        configInProgress=true;     
     }
     else if(c=='Z'){//this is for calibration
        setseasonalAxisBT='t';
-       lcd.clear();
-       delay(2100);
-       lcd.setCursor(0,0);
+       clearLCDScreen();       
        lcd.print("Calibrating...");
        configInProgress=true; 
     }    
@@ -343,9 +337,7 @@ void loop()
        seasonalActuatorOrientation = 'R';
        EEPROM.write(12,seasonalActuatorOrientation);        
        setseasonalAxis=true;
-       lcd.clear();
-       delay(2100);
-       lcd.setCursor(0,0);
+       clearLCDScreen();       
        lcd.print("Changing");        
        lcd.setCursor(0,1);
        lcd.print("Orientation");
@@ -355,9 +347,7 @@ void loop()
        seasonalActuatorOrientation = 'F';
        EEPROM.write(12,seasonalActuatorOrientation);
        setseasonalAxis=true;  
-       lcd.clear();
-       delay(2100);
-       lcd.setCursor(0,0);
+       clearLCDScreen();
        lcd.print("Changing");        
        lcd.setCursor(0,1);
        lcd.print("Orientation"); 
@@ -369,27 +359,21 @@ void loop()
        EEPROM.write(13,dailyActuatorOrientation);
        setDailyAxis=true;
        forceReset=true;
-       lcd.clear();
-       delay(2100);
-       lcd.setCursor(0,0);
+       clearLCDScreen();
        lcd.print("Changing");        
        lcd.setCursor(0,1);
        lcd.print("Orientation");
        configInProgress=true;  
        if(hour<=10){
         EEPROM.write(16,0);//this is important because it needs to actuate to 10 AM position, in case calibration was run after it had attempted to move it to 10 at 7am...
-       }
-       Serial.print("EEPROM.read(16): ");
-       Serial.println(EEPROM.read(16));
+       }      
     }
     else if(c=='U'){
        dailyActuatorOrientation = 'F';
        EEPROM.write(13,dailyActuatorOrientation);
        setDailyAxis=true;
        forceReset=true;
-       lcd.clear();
-       delay(2100);
-       lcd.setCursor(0,0);
+       clearLCDScreen();
        lcd.print("Changing");        
        lcd.setCursor(0,1);
        lcd.print("Orientation"); 
@@ -415,7 +399,7 @@ void loop()
        EEPROM.write(19,designType);   
     }
     else if(c=='G'){
-      Serial.println("*");
+      Serial.println("<");//START
       Serial.print("Optimum Angle -  ");
       if(optimumAngleSet){
         Serial.println("SET");
@@ -472,7 +456,8 @@ void loop()
       Serial.print("currentBlock: ");      
       Serial.println(currentBlockTemp);      
 
-      
+      Serial.println(">");//END
+      Serial.flush();
       
      
     }
@@ -529,12 +514,12 @@ if(haveSeasonalTimings && setseasonalAxis){
 if(haveDailyTimings && hour<24 && month<=12){
     if(hour>=7 && hour<8){//6885
         bool timeCheck=false;
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }   
         timeCheck=false;//so the check happens a 3rd time...     
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }
@@ -563,12 +548,12 @@ if(haveDailyTimings && hour<24 && month<=12){
 
     else if(hour>=8 && hour<9){      
         bool timeCheck=false;
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }   
         timeCheck=false;//so the check happens a 3rd time...     
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }
@@ -595,12 +580,12 @@ if(haveDailyTimings && hour<24 && month<=12){
     }
     else if(hour>=9 && hour<10){      
         bool timeCheck=false;
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }   
         timeCheck=false;//so the check happens a 3rd time...     
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }
@@ -628,12 +613,12 @@ if(haveDailyTimings && hour<24 && month<=12){
     }
   else if(hour>=10 && hour<11){      
          bool timeCheck=false;
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }   
         timeCheck=false;//so the check happens a 3rd time...     
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }
@@ -668,12 +653,12 @@ if(haveDailyTimings && hour<24 && month<=12){
     }
     else if(hour>=11 && hour<12){     
            bool timeCheck=false;
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }   
         timeCheck=false;//so the check happens a 3rd time...     
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }
@@ -704,12 +689,12 @@ if(haveDailyTimings && hour<24 && month<=12){
     }
     else if(hour>=12 && hour<13){  
         bool timeCheck=false;
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }   
         timeCheck=false;//so the check happens a 3rd time...     
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }
@@ -740,12 +725,12 @@ if(haveDailyTimings && hour<24 && month<=12){
     }
     else if(hour>=13 && hour<14){        
         bool timeCheck=false;
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }   
         timeCheck=false;//so the check happens a 3rd time...     
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }
@@ -776,12 +761,12 @@ if(haveDailyTimings && hour<24 && month<=12){
     }
     else if(hour>=14 && hour<15){     
         bool timeCheck=false;
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }   
         timeCheck=false;//so the check happens a 3rd time...     
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }
@@ -812,12 +797,12 @@ if(haveDailyTimings && hour<24 && month<=12){
     }
   else if(hour>=15 && hour<16){   
         bool timeCheck=false;
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }   
         timeCheck=false;//so the check happens a 3rd time...     
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }
@@ -849,13 +834,13 @@ if(haveDailyTimings && hour<24 && month<=12){
     }
     else if(hour>=16 && hour<17){            
         bool timeCheck=false;
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }   
         
         timeCheck=false;//so the check happens a 3rd time...     
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }
@@ -895,12 +880,12 @@ if(haveDailyTimings && hour<24 && month<=12){
     */
     else if(hour>=17 && hour<20 ){
         bool timeCheck=false;
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }   
         timeCheck=false;//so the check happens a 3rd time...     
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }
@@ -937,10 +922,7 @@ if(haveDailyTimings && hour<24 && month<=12){
                   EEPROM.write(15,0);
                   
                 }
-                if(EEPROM.read(9)){
-                                  
-                
-                
+                if(EEPROM.read(9)){               
                    EEPROM.write(9,0);//resetting seasonal        
                 }
                 
@@ -948,12 +930,12 @@ if(haveDailyTimings && hour<24 && month<=12){
     }    
     else if(hour>=20){//reset at 8 pm...         
         bool timeCheck=false;
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }   
         timeCheck=false;//so the check happens a 3rd time...     
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }
@@ -978,8 +960,7 @@ if(haveDailyTimings && hour<24 && month<=12){
                 
                EEPROM.write(9,0);//resetting seasonal        
             }
-            if(hour==23 && EEPROM.read(20) != 23){
-              Serial.print("EEPROM 20 value: ");
+            if(hour==23 && EEPROM.read(20) != 23){              
               Serial.println(EEPROM.read(20));
               
               EEPROM.write(20,hour);
@@ -992,12 +973,12 @@ if(haveDailyTimings && hour<24 && month<=12){
        
        //EEPROM.write(9,0);//indicating that seasonal actuator should now move
        bool timeCheck=false;
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }   
         timeCheck=false;//so the check happens a 3rd time...     
-        delay(3000);
+        delayTimeFunc(3000);
         if(now.hour()==hour){
           timeCheck=true;
         }
@@ -1034,9 +1015,8 @@ if(checkProgram){
     minute=0;
   }
 
-}
-   
-    
+}  
+    wdt_reset();
 }
 /*
 bug fixes:
